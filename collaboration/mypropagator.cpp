@@ -1,6 +1,5 @@
 #include "mypropagator.h"
 #include "gecode/int.hh"
-#include "gecode/minimodel.hh"
 
 //=============================================================
 
@@ -141,29 +140,36 @@ bool MyPropagator::checkNash() {
         }
         if (best) {
             int bestutility = best->getUtility(i);
-
-            vec<BoolView> clause(n);
-            for(int j=0; j<n; j++) {
-                clause[j] = newBoolVar();
-
-                if (j==i) {
-                    int_rel_half_reif(  newIntVar(bestutility),
-                                        IRT_LE,
-                                        problem.util[i],
-                                        clause[j]);
-
-                }
-                else {
-                    int_rel_half_reif(  problem.vars[j],
-                                        IRT_NE,
-                                        problem.vars[j]->getVal(),
-                                        clause[j]);
-                }
-            }
-            bool_clause(clause);
-
             delete best;
-            if (bestutility>currentutility) return false;
+
+            if (bestutility>currentutility) {
+
+                Clause* r = Reason_new(n+1);
+
+                vec<BoolView> clause(n);
+                for(int j=0; j<n; j++) {
+                    clause[j] = newBoolVar();
+
+                    if (j==i) {
+                        int_rel_half_reif(  newIntVar(bestutility),
+                                            IRT_LE,
+                                            problem.util[i],
+                                            clause[j]);
+
+                    }
+                    else {
+                        int_rel_half_reif(  problem.vars[j],
+                                            IRT_NE,
+                                            problem.vars[j]->getVal(),
+                                            clause[j]);
+                    }
+                    (*r)[j+1] = Lit(clause[j]);
+                }
+
+                problem.util[i]->setMin(bestutility,r);
+
+                return false;
+            }
         }
     }
     return true; 
