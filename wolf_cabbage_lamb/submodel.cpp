@@ -1,4 +1,5 @@
 #include "gecode/int.hh"
+#include "gecode/minimodel.hh"
 
 class SubModel : public Gecode::Space {
 protected:
@@ -8,6 +9,18 @@ protected:
 public:
     SubModel() : vars(*this,3,0,1), util(*this,3,0,1) {
         optvar = 0;
+
+        Gecode::BoolVar w  = Gecode::expr(*this, vars[0] == 1);  // Wolf
+        Gecode::BoolVar c  = Gecode::expr(*this, vars[1] == 1);  // Cabbage
+        Gecode::BoolVar l  = Gecode::expr(*this, vars[2] == 1);  // Lamb
+
+        Gecode::BoolVar uw = Gecode::expr(*this, util[0] == 1);  // Wolf utility
+        Gecode::BoolVar uc = Gecode::expr(*this, util[1] == 1);  // Cabbage tility
+        Gecode::BoolVar ul = Gecode::expr(*this, util[2] == 1);  // Lamb utility
+        
+        rel(*this, uw == (w && l));
+        rel(*this, uc == 0);
+        rel(*this, ul == ((!w && c && l) || (w && !l)));
 
         branch(*this, vars, Gecode::INT_VAR_NONE(), 
                             Gecode::INT_VAL_MIN() );

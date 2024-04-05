@@ -16,6 +16,7 @@
                 "-lgecodekernel",
                 "-lgecodesupport",
                 "-lgecodesearch",
+                "-lgecodeminimodel",
                 "-lgecodeint",
             ],
             "options": {

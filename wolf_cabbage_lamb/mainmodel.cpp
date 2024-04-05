@@ -5,10 +5,6 @@
 #include "equilibrium.cpp"
 #include "iostream"
 
-const int w = 0;
-const int c = 1;
-const int l = 2;
-
 class MainProblem : public Problem {
 private:
     vec<IntVar*>    vars;
@@ -20,11 +16,39 @@ public:
         createVars(vars,3,0,1);
         createVars(util,3,0,1);
 
-        int_rel(util[w], IRT_EQ, 1);
-        int_rel(util[c], IRT_EQ, 0);
-        int_rel(util[l], IRT_EQ, vars[l]);
+        BoolView w = newBoolVar();
+        BoolView c = newBoolVar();
+        BoolView l = newBoolVar();
 
-        // new MyPropagator(*this);
+        BoolView uw = newBoolVar();
+        BoolView uc = newBoolVar();
+        BoolView ul = newBoolVar();
+
+        int_rel_reif(vars[0],IRT_EQ,1,w);
+        int_rel_reif(vars[1],IRT_EQ,1,c);
+        int_rel_reif(vars[2],IRT_EQ,1,l);
+
+        int_rel_reif(util[0],IRT_EQ,1,uw);
+        int_rel_reif(util[1],IRT_EQ,1,uc);
+        int_rel_reif(util[2],IRT_EQ,1,ul);
+
+        vec<BoolView> bv1(2); bv1[0] = w; bv1[1]= l;
+        array_bool_and(bv1,uw);
+
+        bool_rel(uc,BRT_EQ,bv_false);
+
+        vec<BoolView> bv2(3); bv2[0]=~w; bv2[1]=c; bv2[2]=l;
+        BoolView b2 = newBoolVar();
+        array_bool_and(bv2,b2);
+
+        vec<BoolView> bv3(2); bv3[0]=w; bv3[1]=~l;
+        BoolView b3 = newBoolVar();
+        array_bool_and(bv3,b3);
+
+        vec<BoolView> bv4(2); bv4[0]=b2; bv4[1]=b3;
+        array_bool_or(bv4,ul);
+
+        new Equilibrium(vars,util);
 
         branch(vars, VAR_INORDER, VAL_MIN);
         output_vars(vars);
