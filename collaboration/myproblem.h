@@ -23,7 +23,6 @@ public:
 
 #include "mypropagator.h"
 
-//-------------------------------------------------------------
 
 MyProblem::MyProblem() {
     createVars(vars,n,1,n);
@@ -41,7 +40,9 @@ MyProblem::MyProblem() {
     new MyPropagator(*this);
 
     branch(vars, VAR_INORDER, VAL_MIN);
+    branch(util, VAR_INORDER, VAL_MIN);
     output_vars(vars);
+    output_vars(util);
 }
 
 //-------------------------------------------------------------
@@ -65,7 +66,7 @@ void MyProblem::addConstraint() {
 
     //     if (j==i) {
     //         int_rel_half_reif(  newIntVar(3),
-    //                             IRT_LE,
+    //                             IRT_GE,
     //                             problem.util[i],
     //                             clause[j]);
 

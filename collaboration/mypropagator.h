@@ -18,19 +18,18 @@ public :
     bool checkNash();
 };
 
-//---------------------------------------------------------
+//-------------------------------------------------------------
+
 #include "mypropagator.h"
 #include "gecode/int.hh"
 
-//=============================================================
-
-class MySubProblem : public Gecode::Space {
+class Equilibrium : public Gecode::Space {
 protected:
     Gecode::IntVarArray vars;
     Gecode::IntVarArray util;
     int optvar;
 public:
-    MySubProblem() : vars(*this,n,1,n), util(*this,n,1,n) {
+    Equilibrium() : vars(*this,n,1,n), util(*this,n,1,n) {
         optvar = 0;
         for (int i=0; i<n; i++) {
             Gecode::count(  *this, 
@@ -42,7 +41,7 @@ public:
                             Gecode::INT_VAL_MIN() );
     }
     //---------------------------------------------------------
-    MySubProblem(MySubProblem& source) 
+    Equilibrium(Equilibrium& source) 
     : Gecode::Space(source) {
         vars.update(*this, source.vars);
         util.update(*this, source.util);
@@ -54,7 +53,7 @@ public:
     }
     //---------------------------------------------------------
     virtual Gecode::Space* copy() {
-        return new MySubProblem(*this);
+        return new Equilibrium(*this);
     }
     //---------------------------------------------------------
     void setOptVar(int i) {
@@ -62,8 +61,8 @@ public:
     }
     //---------------------------------------------------------
     virtual void constrain(const Gecode::Space& current) {
-        const MySubProblem& candidate = 
-            static_cast<const MySubProblem&>(current);
+        const Equilibrium& candidate = 
+            static_cast<const Equilibrium&>(current);
         Gecode::rel(*this, 
                     util[optvar], 
                     Gecode::IRT_GR, 
@@ -123,17 +122,17 @@ void MyPropagator:: clearPropState() {
 bool MyPropagator::checkNash() { 
     for (int i=0; i<n; i++) {
         int currentutility = problem.util[i]->getVal();
-        MySubProblem* submodel = new MySubProblem();
+        Equilibrium* submodel = new Equilibrium();
         for (int j=0; j<n; j++) {
             if (j==i) continue;
             submodel->fixValue(j, problem.vars[j]->getVal());
         }
 
         submodel->setOptVar(i);
-        Gecode::BAB<MySubProblem> subengine(submodel);
+        Gecode::BAB<Equilibrium> subengine(submodel);
         delete submodel;
-        MySubProblem* best = nullptr;
-        while (MySubProblem* better = subengine.next()) {
+        Equilibrium* best = nullptr;
+        while (Equilibrium* better = subengine.next()) {
             if (best) delete best;
             best = better;
         }
@@ -142,32 +141,10 @@ bool MyPropagator::checkNash() {
             delete best;
 
             if (bestutility>currentutility) {
+                Clause* r = Reason_new(2);
 
-                // Clause* r = Reason_new(n+1);
-
-                // vec<BoolView> clause(n);
-                // for(int j=0; j<n; j++) {
-                //     clause[j] = newBoolVar();
-
-                //     if (j==i) {
-                //         int_rel_half_reif(  newIntVar(bestutility),
-                //                             IRT_GE,
-                //                             problem.util[i],
-                //                             clause[j]);
-
-                //     }
-                //     else {
-                //         int_rel_half_reif(  problem.vars[j],
-                //                             IRT_NE,
-                //                             problem.vars[j]->getVal(),
-                //                             clause[j]);
-                //     }
-                //     (*r)[j+1] = Lit(clause[j]);
-                // }
-
-                // bool_clause(clause);
-
-                // problem.util[i]->setMin(bestutility,r);
+                (*r)[1] = ~(problem.util[i]->getMinLit());
+                problem.util[i]->setMin(bestutility,r);
 
                 return false;
             }
