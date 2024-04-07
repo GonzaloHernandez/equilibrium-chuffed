@@ -13,6 +13,7 @@
                 "-I/home/chalo/.local/include",
                 "-L/home/chalo/.local/lib",
                 "-lchuffed",
+                "-L/usr/local/",
                 "-lgecodekernel",
                 "-lgecodesupport",
                 "-lgecodesearch",

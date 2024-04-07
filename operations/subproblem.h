@@ -1,32 +1,27 @@
 #include "gecode/int.hh"
 #include "gecode/minimodel.hh"
 
-class SubModel : public Gecode::Space {
+class SubProblem : public Gecode::Space {
 protected:
     Gecode::IntVarArray vars;
     Gecode::IntVarArray util;
     int optvar;
 public:
-    SubModel() : vars(*this,3,0,1), util(*this,3,0,1) {
+    SubProblem() : vars(*this,3,1,3), util(*this,3,-10,30) {
         optvar = 0;
 
-        Gecode::BoolVar w  = Gecode::expr(*this, vars[0] == 1);  // Wolf
-        Gecode::BoolVar c  = Gecode::expr(*this, vars[1] == 1);  // Cabbage
-        Gecode::BoolVar l  = Gecode::expr(*this, vars[2] == 1);  // Lamb
-
-        Gecode::BoolVar uw = Gecode::expr(*this, util[0] == 1);  // Wolf utility
-        Gecode::BoolVar uc = Gecode::expr(*this, util[1] == 1);  // Cabbage tility
-        Gecode::BoolVar ul = Gecode::expr(*this, util[2] == 1);  // Lamb utility
-        
-        rel(*this, uw == (w && l));
-        rel(*this, uc == 0);
-        rel(*this, ul == ((!w && c && l) || (w && !l)));
+        Gecode::IntVar x = vars[0];
+        Gecode::IntVar y = vars[1];
+        Gecode::IntVar z = vars[2];
+        rel(*this, util[0] == x + y + z);
+        rel(*this, util[1] == x * y * z);
+        rel(*this, util[2] == x - y - z);
 
         branch(*this, vars, Gecode::INT_VAR_NONE(), 
                             Gecode::INT_VAL_MIN() );
     }
     //---------------------------------------------------------
-    SubModel(SubModel& source) 
+    SubProblem(SubProblem& source) 
     : Gecode::Space(source) {
         vars.update(*this, source.vars);
         util.update(*this, source.util);
@@ -34,7 +29,7 @@ public:
     }
     //---------------------------------------------------------
     virtual Gecode::Space* copy() {
-        return new SubModel(*this);
+        return new SubProblem(*this);
     }
     //---------------------------------------------------------
     void setOptVar(int i) {
@@ -42,8 +37,8 @@ public:
     }
     //---------------------------------------------------------
     virtual void constrain(const Gecode::Space& current) {
-        const SubModel& candidate = 
-            static_cast<const SubModel&>(current);
+        const SubProblem& candidate = 
+            static_cast<const SubProblem&>(current);
         Gecode::rel(*this, 
                     util[optvar], 
                     Gecode::IRT_GR, 
@@ -60,5 +55,9 @@ public:
     //------------------------------------------------------------
     int getUtility(int i) {
         return util[i].val();
+    }
+    //------------------------------------------------------------
+    void print() {
+        std::cout << vars << " " << util << std::endl;
     }
 };

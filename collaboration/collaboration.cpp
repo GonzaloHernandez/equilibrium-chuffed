@@ -13,7 +13,7 @@ uint64_t gettime() {
 
 int main(int argc, char *argv[])
 {
-    n = 9;
+    n = 3;
     parseOptions(argc,argv);
     so.nof_solutions = 0;
     // so.lazy = false;

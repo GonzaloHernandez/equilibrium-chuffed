@@ -1,59 +1,57 @@
 #ifndef MYPROPAGATOR_H
 #define MYPROPAGATOR_H
 
-#include "myproblem.h"
 #include "chuffed/core/propagator.h"
+#include "mainmodel.h"
 
-//---------------------------------------------------------
-
-class MyPropagator : public Propagator {
+class Equilibrium : public Propagator {
 private:
-    MyProblem&      problem;
-    vec<vec<int>>   bestus;
+    MainProblem&    problem;
 public :
-    MyPropagator(MyProblem&);
-    bool propagate()            override;
-    void wakeup(int i, int)     override;
-    void clearPropState()       override;
+    Equilibrium(MainProblem&);
+    bool propagate();
+    void wakeup(int i, int);
+    void clearPropState();
     bool checkNash();
 };
 
-//-------------------------------------------------------------
-
-#include "mypropagator.h"
 #include "gecode/int.hh"
+#include "gecode/minimodel.hh"
 
-class Equilibrium : public Gecode::Space {
+class SubModel : public Gecode::Space {
 protected:
     Gecode::IntVarArray vars;
     Gecode::IntVarArray util;
     int optvar;
 public:
-    Equilibrium() : vars(*this,n,1,n), util(*this,n,1,n) {
+    SubModel() : vars(*this,3,0,1), util(*this,3,0,1) {
         optvar = 0;
-        for (int i=0; i<n; i++) {
-            Gecode::count(  *this, 
-                            vars, vars[i], 
-                            Gecode::IRT_EQ, 
-                            util[i]);
-        }
+
+        Gecode::BoolVar w  = Gecode::expr(*this, vars[0] == 1);  // Wolf
+        Gecode::BoolVar c  = Gecode::expr(*this, vars[1] == 1);  // Cabbage
+        Gecode::BoolVar l  = Gecode::expr(*this, vars[2] == 1);  // Lamb
+
+        Gecode::BoolVar uw = Gecode::expr(*this, util[0] == 1);  // Wolf utility
+        Gecode::BoolVar uc = Gecode::expr(*this, util[1] == 1);  // Cabbage tility
+        Gecode::BoolVar ul = Gecode::expr(*this, util[2] == 1);  // Lamb utility
+        
+        rel(*this, uw == (w && l));
+        rel(*this, uc == 0);
+        rel(*this, ul == ((!w && c && l) || (w && !l)));
+
         branch(*this, vars, Gecode::INT_VAR_NONE(), 
                             Gecode::INT_VAL_MIN() );
     }
     //---------------------------------------------------------
-    Equilibrium(Equilibrium& source) 
+    SubModel(SubModel& source) 
     : Gecode::Space(source) {
         vars.update(*this, source.vars);
         util.update(*this, source.util);
         optvar = source.optvar;
     }
     //---------------------------------------------------------
-    void print() const {
-        std::cout << vars << std::endl;
-    }
-    //---------------------------------------------------------
     virtual Gecode::Space* copy() {
-        return new Equilibrium(*this);
+        return new SubModel(*this);
     }
     //---------------------------------------------------------
     void setOptVar(int i) {
@@ -61,8 +59,8 @@ public:
     }
     //---------------------------------------------------------
     virtual void constrain(const Gecode::Space& current) {
-        const Equilibrium& candidate = 
-            static_cast<const Equilibrium&>(current);
+        const SubModel& candidate = 
+            static_cast<const SubModel&>(current);
         Gecode::rel(*this, 
                     util[optvar], 
                     Gecode::IRT_GR, 
@@ -80,61 +78,50 @@ public:
     int getUtility(int i) {
         return util[i].val();
     }
+    //------------------------------------------------------------
+    void print() {
+        std::cout << vars << " " << util << std::endl;
+    }
 };
 
-//=============================================================
-
-MyPropagator::MyPropagator(MyProblem& problem) : problem(problem) {
-    bestus.growTo(n);
-    for (int i=0; i<n; i++) {
+Equilibrium::Equilibrium(MainProblem& p) : problem(p){
+    for (int i=0; i<3; i++) {
         problem.vars[i]->attach(this, 0, EVENT_F );
     }
 }
-
 //-------------------------------------------------------------
-
-bool MyPropagator::propagate()  {
-
-    std::cout << "++ " << problem.toStr() << std::endl;
-    for (int i=0; i<n; i++) {
+bool Equilibrium::propagate()  {
+    for (int i=0; i<3; i++) {
         if (!problem.vars[i]->isFixed()) return true;
     }
 
-    if ( checkNash() == false ) {
-        return false;
-    }
+    if ( checkNash() == false ) return false;
 
     return true;
 }
-
 //-------------------------------------------------------------
-
-void MyPropagator::wakeup(int i, int) {
+void Equilibrium::wakeup(int i, int) {
     pushInQueue();
 }
-
 //-------------------------------------------------------------
-
-void MyPropagator:: clearPropState() { 
+void Equilibrium::clearPropState() { 
     in_queue = false; 
 }
-
 //-------------------------------------------------------------
-
-bool MyPropagator::checkNash() { 
-    for (int i=0; i<n; i++) {
+bool Equilibrium::checkNash() { 
+    for (int i=0; i<3; i++) {
         int currentutility = problem.util[i]->getVal();
-        Equilibrium* submodel = new Equilibrium();
-        for (int j=0; j<n; j++) {
+        SubModel* submodel = new SubModel();
+        for (int j=0; j<3; j++) {
             if (j==i) continue;
             submodel->fixValue(j, problem.vars[j]->getVal());
         }
 
         submodel->setOptVar(i);
-        Gecode::BAB<Equilibrium> subengine(submodel);
+        Gecode::BAB<SubModel> subengine(submodel);
         delete submodel;
-        Equilibrium* best = nullptr;
-        while (Equilibrium* better = subengine.next()) {
+        SubModel* best = nullptr;
+        while (SubModel* better = subengine.next()) {
             if (best) delete best;
             best = better;
         }
@@ -144,9 +131,9 @@ bool MyPropagator::checkNash() {
 
             if (bestutility>currentutility) {
                 if (so.lazy) {
-                    Clause* r = Reason_new(n+1);
+                    Clause* r = Reason_new(4);
 
-                    for (int j=0; j<n; j++) {
+                    for (int j=0; j<3; j++) {
                         if (j==i) {
                             (*r)[j+1] = problem.util[j]->getMinLit();
                         }
@@ -165,4 +152,4 @@ bool MyPropagator::checkNash() {
     return true; 
 }
 
-#endif // MYPROPAGATOR_H
+#endif  // MYPROPAGATOR_H

@@ -1,52 +1,30 @@
-#ifndef MYPROBLEM_H
-#define MYPROBLEM_H
-
 #include "chuffed/vars/modelling.h"
-#include "equilibrium.cpp"
+#include "equilibrium.h"
 #include "iostream"
 
 class MainProblem : public Problem {
-private:
+public:
     vec<IntVar*>    vars;
     vec<IntVar*>    util;
     friend class Equilimbrium;
 public:
     //-----------------------------------------------------
     MainProblem() {
-        createVars(vars,3,0,1);
-        createVars(util,3,0,1);
+        createVars(vars,3,1,3);
+        createVars(util,3,-10,30);
 
-        BoolView w = newBoolVar();
-        BoolView c = newBoolVar();
-        BoolView l = newBoolVar();
+        int_linear(vars,IRT_EQ,util[0]);
 
-        BoolView uw = newBoolVar();
-        BoolView uc = newBoolVar();
-        BoolView ul = newBoolVar();
+        IntVar* temp;
+        createVar(temp,-10,30);
+        int_times(vars[0],vars[1],temp);
+        int_times(temp,vars[2],util[1]);
 
-        int_rel_reif(vars[0],IRT_EQ,1,w);
-        int_rel_reif(vars[1],IRT_EQ,1,c);
-        int_rel_reif(vars[2],IRT_EQ,1,l);
-
-        int_rel_reif(util[0],IRT_EQ,1,uw);
-        int_rel_reif(util[1],IRT_EQ,1,uc);
-        int_rel_reif(util[2],IRT_EQ,1,ul);
-
-        vec<BoolView> bv1(2); bv1[0] = w; bv1[1]= l;
-        array_bool_and(bv1,uw);
-
-        bool_rel(uc,BRT_EQ,bv_false);
-
-        vec<BoolView> bv2(3); bv2[0]=~w; bv2[1]=c; bv2[2]=l;
-        BoolView b2 = newBoolVar();
-        array_bool_and(bv2,b2);
-
-        vec<BoolView> bv3(2); bv3[0]=w; bv3[1]=~l;
-        BoolView b3 = newBoolVar();
-        array_bool_and(bv3,b3);
-
-        vec<BoolView> bv4(2); bv4[0]=b2; bv4[1]=b3;
-        array_bool_or(bv4,ul);
+        vec<int> args(3);
+        args[0] = 1;
+        args[1] = -1;
+        args[2] = -1;
+        int_linear(args,vars,IRT_EQ,util[2]);
 
         new Equilibrium(vars,util);
 
@@ -54,7 +32,7 @@ public:
         output_vars(vars);
     }
     //-----------------------------------------------------
-    void print(std::ostream& out) override {
+    void print(std::ostream& out) override  {
         out << "[ ";
         for (int i=0; i<vars.size(); i++) {
         if (vars[i]->getMin() == vars[i]->getMax())
@@ -84,7 +62,7 @@ public:
     }
 };
 
-//-------------------------------------------------------------
+
 
 uint64_t gettime() {
     using   namespace std::chrono;
@@ -92,8 +70,6 @@ uint64_t gettime() {
                 system_clock::now().time_since_epoch()
             ).count();
 }
-
-//-------------------------------------------------------------
 
 int main(int argc, char *argv[])
 {
@@ -111,5 +87,14 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-
-#endif // MYPROBLEM_H
+// int main(int argc, char const *argv[])
+// {
+//     SubProblem* model = new SubProblem();
+//     Gecode::DFS<SubProblem> engine(model);
+//     delete model;
+//     while (SubProblem* solution = engine.next()) {
+//         solution->print();
+//         delete solution;
+//     }
+//     return 0;
+// }
