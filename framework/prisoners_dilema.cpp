@@ -25,7 +25,7 @@ MainProblem::MainProblem() {
     argsuy[2] = -1; varsuy[2] = y;    
     int_linear(argsuy,varsuy,IRT_EQ,2);
 
-    new Equilibrium(vars,util);
+    equilibrium(vars,util);
 
     branch(vars, VAR_INORDER, VAL_MIN);
     output_vars(vars);
@@ -36,12 +36,14 @@ MainProblem::MainProblem() {
 SubProblem::SubProblem() 
 :   vars(*this,2,0,1),
     util(*this,2,0,3) {
+    
+    Gecode::IntVar  x = vars[0];
+    Gecode::IntVar  y = vars[1];
+    Gecode::IntVar ux = util[0];
+    Gecode::IntVar uy = util[1];
 
-    Gecode::IntVar x = vars[0];
-    Gecode::IntVar y = vars[1];
-
-    rel(*this, util[0] == 3-((y*2)-x+1));
-    rel(*this, util[1] == 3-((x*2)-y+1));
+    rel(*this, ux == 3-((y*2)-x+1));
+    rel(*this, uy == 3-((x*2)-y+1));
 
     branch(*this, vars, Gecode::INT_VAR_NONE(), 
                         Gecode::INT_VAL_MIN() );

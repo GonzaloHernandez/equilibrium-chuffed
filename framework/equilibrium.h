@@ -49,7 +49,7 @@ public :
 };
 
 //------------------------------------------------------------
-// Main Problem 
+// Main Problem (Chuffed)
 //------------------------------------------------------------
 
 void MainProblem::print(std::ostream& out) {
@@ -81,8 +81,9 @@ std::string MainProblem::toStr() {
 }  
 
 //------------------------------------------------------------
-// Sub Problem 
+// Sub Problem (Gecode)
 //------------------------------------------------------------
+
 SubProblem::SubProblem(SubProblem& source) : Gecode::Space(source) {
     vars.update(*this, source.vars);
     util.update(*this, source.util);
@@ -123,7 +124,7 @@ void SubProblem::print() {
 }
 
 //------------------------------------------------------------
-// Equilibrium
+// Equilibrium (Chuffed)
 //------------------------------------------------------------
 
 Equilibrium::Equilibrium(vec<IntVar*>& v, vec<IntVar*>& u) 
@@ -182,14 +183,16 @@ bool Equilibrium::checkNash() {
 
                     for (int j=0; j<n; j++) {
                         if (j==i) {
-                            (*r)[j+1] = util[j]->getMinLit();
+                            (*r)[j+1] = util[j]->getValLit();
+                            // (*r)[j+1] = util[j]->getLit(bestutility, LR_EQ);
                         }
                         else {
-                            (*r)[j+1] = vars[j]->getMinLit();
+                            // (*r)[j+1] = vars[j]->getMinLit();
+                            (*r)[j+1] = vars[j]->getMaxLit();
                         }
                     }
 
-                    util[i]->setMin(bestutility,r);
+                    util[i]->setMin(bestutility,r); 
                 }
 
                 return false;
@@ -197,4 +200,12 @@ bool Equilibrium::checkNash() {
         }
     }
     return true; 
+}
+
+//------------------------------------------------------------
+// Free functions
+//------------------------------------------------------------
+
+void equilibrium(vec<IntVar*>& v, vec<IntVar*>& u) {
+    new Equilibrium(v,u);
 }

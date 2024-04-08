@@ -20,7 +20,7 @@ MainProblem::MainProblem() {
     args[2] = -1;
     int_linear(args,vars,IRT_EQ,util[2]);
 
-    new Equilibrium(vars,util);
+    equilibrium(vars,util);
 
     branch(vars, VAR_INORDER, VAL_MIN);
     output_vars(vars);

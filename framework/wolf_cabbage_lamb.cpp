@@ -43,7 +43,7 @@ MainProblem::MainProblem() {
     array_bool_or(bv4,ul);
 
 
-    new Equilibrium(vars,util);
+    equilibrium(vars,util);
 
     branch(vars, VAR_INORDER, VAL_MIN);
     output_vars(vars);

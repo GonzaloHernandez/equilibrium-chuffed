@@ -56,7 +56,7 @@ MainProblem::MainProblem() {
 
     array_bool_and(b,uz);                       // uz = (b[0] /\ b[1] /\ b[2])
 
-    new Equilibrium(vars,util);
+    equilibrium(vars,util);
 
     branch(vars, VAR_INORDER, VAL_MIN);
     output_vars(vars);
@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 {
     parseOptions(argc,argv);
     so.nof_solutions = 0;
-    so.lazy = false;
+    // so.lazy = false;
     MainProblem* problem = new MainProblem();
     
     uint64_t t1 = gettime();
