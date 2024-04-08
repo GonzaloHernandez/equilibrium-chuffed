@@ -13,12 +13,11 @@
                 "-I/home/chalo/.local/include",
                 "-L/home/chalo/.local/lib",
                 "-lchuffed",
-                "-L/usr/local/",
                 "-lgecodekernel",
                 "-lgecodesupport",
                 "-lgecodesearch",
                 "-lgecodeminimodel",
-                "-lgecodeint",
+                "-lgecodeint"
             ],
             "options": {
                 "cwd": "${fileDirname}"
