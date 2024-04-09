@@ -54,6 +54,8 @@ uint64_t gettime() {
 
 int main(int argc, char *argv[])
 {
+    // n = atoi(argv[1]);
+
     parseOptions(argc,argv);
     so.nof_solutions = 0;
     // so.lazy = false;
@@ -62,7 +64,7 @@ int main(int argc, char *argv[])
     uint64_t t1 = gettime();
     engine.solve(problem);    
     uint64_t t2 = gettime();
-    std::cout << ": " << t2-t1 << std::endl;
+    std::cout << "n : " << t2-t1 << std::endl;
 
     delete problem;
     return 0;

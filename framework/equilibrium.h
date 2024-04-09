@@ -179,16 +179,15 @@ bool Equilibrium::checkNash() {
 
             if (bestutility>currentutility) {
                 if (so.lazy) {
-                    Clause* r = Reason_new(n+1);
+                    Clause* r = Reason_new(n);
 
+                    int k=1;
                     for (int j=0; j<n; j++) {
                         if (j==i) {
-                            (*r)[j+1] = util[j]->getValLit();
-                            // (*r)[j+1] = util[j]->getLit(bestutility, LR_EQ);
+                            // (*r)[0] = util[j]->getLit(bestutility, LR_GE);
                         }
                         else {
-                            // (*r)[j+1] = vars[j]->getMinLit();
-                            (*r)[j+1] = vars[j]->getMaxLit();
+                            (*r)[k++] = vars[j]->getValLit();
                         }
                     }
 
@@ -197,9 +196,23 @@ bool Equilibrium::checkNash() {
 
                 return false;
             }
+
+            // vec<BoolView> clause(n);
+            // for (int j=0; j<n; j++) {
+            //     clause[j] = newBoolVar();
+            //     if (j==i) {
+            //         int_rel_reif(util[j],IRT_GE,bestutility,clause[j]);
+            //     }
+            //     else {
+            //         int_rel_reif(vars[j],IRT_NE,vars[j]->getVal(),clause[j]);
+            //     }
+            // }
+            // bool_clause(clause);
+
         }
+
     }
-    return true; 
+    return true;
 }
 
 //------------------------------------------------------------
