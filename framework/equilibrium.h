@@ -2,6 +2,13 @@
 #include "chuffed/core/propagator.h"
 #include "gecode/int.hh"
 #include "gecode/minimodel.hh"
+#include "table.h"
+
+//------------------------------------------------------------
+
+Table*  newinformation;
+
+bool testing = false;
 
 //------------------------------------------------------------
 
@@ -11,7 +18,8 @@ public:
     vec<IntVar*>    util;
 public:
     MainProblem();  // Should be implemented by user
-    void print(std::ostream& out) override ;
+    void print(std::ostream& out)   override ;
+    void addConstraints()           override;
     std::string toStr();
 };
 
@@ -25,8 +33,8 @@ protected:
 public:
     SubProblem();   // Should be implemented by user
     SubProblem(SubProblem& source);
-    virtual Gecode::Space* copy();
-    virtual void constrain(const Gecode::Space& current);
+    Gecode::Space* copy()                           override;
+    void constrain(const Gecode::Space& current)    override;
     void setOptVar(int i);
     void fixValue(int i,int val);
     void setPreference(int i, int val);
@@ -72,6 +80,36 @@ void MainProblem::print(std::ostream& out) {
                 << "} "; 
     }
     out << "]";
+}
+//------------------------------------------------------------
+void MainProblem::addConstraints() {
+
+    if (!testing) return;
+
+    /*  This method requires a modification in "chuffed". It's 
+        necessary to create this new method in the class Problem
+        and adding an invocation en Engine::serach after the 
+        "blockCurrentSol" instruction.
+    */
+
+    int n = vars.size();
+    int** vals = newinformation->getRow(0);
+    for (int c = 0; c < newinformation->len(0); c++) {
+        Clause& clause = *Reason_new(n);
+        int i = vals[c][0];
+        for (int j=0; j<n; j++) {
+            if (j==i) {
+                clause[j] = util[j]->getLit( vals[c][j+1], LR_GE);
+            }
+            else {
+                clause[j] = vars[j]->getLit( vals[c][j+1], LR_NE);
+            }
+        }
+        sat.addClause(clause);
+        // sat.confl = &clause;
+    }
+
+    newinformation->empty(0);
 }
 //------------------------------------------------------------
 std::string MainProblem::toStr() {
@@ -130,6 +168,7 @@ void SubProblem::print() {
 Equilibrium::Equilibrium(vec<IntVar*>& v, vec<IntVar*>& u) 
 : vars(v), util(u)
 {
+    newinformation = new Table(1,vars.size());
     for (int i=0; i<vars.size(); i++) {
         vars[i]->attach(this, i, EVENT_F );
         util[i]->attach(this, i, EVENT_F );
@@ -173,43 +212,45 @@ bool Equilibrium::checkNash() {
             if (best) delete best;
             best = better;
         }
-        if (best) {
-            int bestutility = best->getUtility(i);
-            delete best;
 
-            if (bestutility>currentutility) {
-                if (so.lazy) {
-                    Clause* r = Reason_new(n);
+        if (!best) continue;    // this should never happen
 
-                    int k=1;
-                    for (int j=0; j<n; j++) {
-                        if (j==i) {
-                            // (*r)[0] = util[j]->getLit(bestutility, LR_GE);
-                        }
-                        else {
-                            (*r)[k++] = vars[j]->getValLit();
-                        }
+        int bestutility = best->getUtility(i);
+
+        delete best;
+
+        if ( bestutility > currentutility) {
+            if (so.lazy) {
+                Clause* r = Reason_new(n);
+
+                int k=1;
+                for (int j=0; j<n; j++) {
+                    if (j!=i) {
+                        (*r)[k++] = vars[j]->getValLit();
                     }
-
-                    util[i]->setMin(bestutility,r); 
                 }
 
-                return false;
+                util[i]->setMin(bestutility,r); 
             }
 
-            // vec<BoolView> clause(n);
-            // for (int j=0; j<n; j++) {
-            //     clause[j] = newBoolVar();
-            //     if (j==i) {
-            //         int_rel_reif(util[j],IRT_GE,bestutility,clause[j]);
-            //     }
-            //     else {
-            //         int_rel_reif(vars[j],IRT_NE,vars[j]->getVal(),clause[j]);
-            //     }
-            // }
-            // bool_clause(clause);
-
+            return false;
         }
+
+        if (!testing) continue;
+
+        /*This bellow block is part of addConstraint method*/
+        int vals[n+1];
+        vals[0] = i;
+        for (int j=0; j<n; j++) {
+            if (j==i) {
+                vals[j+1] = bestutility;
+            }
+            else {
+                vals[j+1] = vars[j]->getVal();
+            }
+        }
+        newinformation->add(0,vals);
+        /*This above block is part of addConstraint method*/
 
     }
     return true;

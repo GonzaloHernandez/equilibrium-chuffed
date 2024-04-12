@@ -1,7 +1,7 @@
 #include "equilibrium.h"
 #include "iostream"
 
-int n = 7;
+int n = 4;
 
 //------------------------------------------------------------
 
@@ -17,6 +17,7 @@ MainProblem::MainProblem() {
         }
         bool_linear(checks,IRT_EQ,util[i]);
     }
+
 
     equilibrium(vars,util);
 

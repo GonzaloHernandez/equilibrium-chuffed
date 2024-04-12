@@ -9,7 +9,7 @@ MainProblem::MainProblem() {
 
     //Model in chuffed way
 
-    new Equilibrium(vars,util);
+    equilibrium(vars,util);
 
     branch(vars, VAR_INORDER, VAL_MIN);
     output_vars(vars);
